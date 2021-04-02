@@ -7,3 +7,5 @@
 下次年度更新: 2022 年 12 月 31 日前。
 
 订阅日历 URL：https://github.com/n00d1e5/China-Festival-Calendar/blob/main/ChinaFestivalCal.ics
+
+![23](/QR%20Code.png)
