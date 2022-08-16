@@ -6,4 +6,4 @@
 
 下次年度更新: 2022 年 12 月 31 日前。
 
-订阅日历 URL：https://github.com/n00d1e5/China-Festival-Calendar/blob/main/ChinaFestivalCal.ics
+订阅日历 URL：https://raw.githubusercontent.com/MoienBowen/China-Festival-Calendar/main/ChinaFestivalCal.ics
