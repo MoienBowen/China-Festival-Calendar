@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 生成包含中国传统节日的 iCalendar (.ics) 文件，不含假期
-- 区间：从当前日期前一年年初到下一年年底”
+- 区间：从当前日期前一年年初到下一年年底
 - 文件名：ChinaFestivalCal.ics
 
 依赖安装（推荐 uv）：
@@ -22,32 +22,26 @@ try:
 except Exception as e:
     raise RuntimeError("缺少 zhdate，请先安装：uv pip install zhdate") from e
 
-
 # ---- 基本配置 ----
 OUTPUT_FILE = "ChinaFestivalCal.ics"
 CALENDAR_NAME = "中国传统节日"
 CALENDAR_DESCRIPTION = (
-    "中国传统节日，不含假期。"
+    "中国传统节日（含农历、节气、及常见公历纪念日），不含假期扩展。"
 )
 EVENT_TRANSP = "TRANSPARENT"  # 不占用日程
-
 
 # ---- 工具函数 ----
 def today_local_date() -> date:
     return datetime.now().date()
 
-
 def dtstamp_utc() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-
 
 def yyyymmdd(d: date) -> str:
     return d.strftime("%Y%m%d")
 
-
 def format_date_ics(d: date) -> str:
     return d.strftime("%Y%m%d")
-
 
 def nth_weekday_of_month(year: int, month: int, weekday: int, n: int) -> date:
     """
@@ -59,11 +53,9 @@ def nth_weekday_of_month(year: int, month: int, weekday: int, n: int) -> date:
     day = 1 + shift + (n - 1) * 7
     return date(year, month, day)
 
-
 def lunar_to_solar(lunar_year: int, lunar_month: int, lunar_day: int) -> date:
     """农历转公历（返回 date）"""
     return ZhDate(lunar_year, lunar_month, lunar_day).to_datetime().date()
-
 
 def last_day_of_layue(lunar_year: int) -> int:
     """返回当年腊月最后一天（29 或 30），用于除夕"""
@@ -72,7 +64,6 @@ def last_day_of_layue(lunar_year: int) -> int:
         return 30
     except Exception:
         return 29
-
 
 # ---- 仅用“日期级”节气公式（21 世纪，2001-2100）----
 def _century21_solar_term_day(year: int, C: float) -> int:
@@ -86,7 +77,6 @@ def _century21_solar_term_day(year: int, C: float) -> int:
     Y = year % 100
     return int(math.floor(Y * 0.2422 + C) - math.floor(Y / 4))
 
-
 def get_qingming_date(year: int) -> date | None:
     """
     清明（4 月）：C=4.81。常见结果为 4/4 或 4/5。
@@ -96,7 +86,6 @@ def get_qingming_date(year: int) -> date | None:
         return None
     day = _century21_solar_term_day(year, 4.81)
     return date(year, 4, day)
-
 
 def get_solstice_dates(year: int) -> Dict[str, date]:
     """
@@ -112,7 +101,7 @@ def get_solstice_dates(year: int) -> Dict[str, date]:
     day_summer = _century21_solar_term_day(year, 21.37)
     result["夏至"] = date(year, 6, day_summer)
 
-    # 冬至：通常 12/21 ~ 12/22
+    # 冬至：通常 12/21 ~ 12/22（个别年有 12/23）
     day_winter = _century21_solar_term_day(year, 21.94)
     if year == 2021:
         day_winter -= 1  # 已知修正样例
@@ -120,18 +109,18 @@ def get_solstice_dates(year: int) -> Dict[str, date]:
 
     return result
 
-
 # ---- 节日构造 ----
 def build_lunar_festivals_for_lunar_year(lunar_year: int) -> List[Tuple[str, date, str]]:
     """
     农历节日列表：[(name, date, category)]
     category = "Lunar"
-    包含：除夕、春节、元宵、上巳节/龙抬头、端午、七夕、中元、中秋、重阳、下元、腊八、小年（腊月二十三）
+    包含：除夕、春节、元宵、上巳节、端午、七夕、中元、中秋、重阳、下元、腊八、小年（腊月二十三）、龙抬头（二月初二）
     """
     names_fixed = [
         ("春节", 1, 1),
         ("元宵节", 1, 15),
-        ("上巳节/龙抬头", 3, 3),
+        ("龙抬头", 2, 2),           # 新增：二月初二
+        ("上巳节", 3, 3),           # 名称更正：仅“上巳节”
         ("端午节", 5, 5),
         ("七夕节", 7, 7),
         ("中元节", 7, 15),
@@ -139,7 +128,7 @@ def build_lunar_festivals_for_lunar_year(lunar_year: int) -> List[Tuple[str, dat
         ("重阳节", 9, 9),
         ("下元节", 10, 15),
         ("腊八节", 12, 8),
-        ("小年", 12, 23),  # 仅腊月二十三
+        ("小年", 12, 23),          # 仅腊月二十三
     ]
     items: List[Tuple[str, date, str]] = []
     for name, m, d in names_fixed:
@@ -157,7 +146,6 @@ def build_lunar_festivals_for_lunar_year(lunar_year: int) -> List[Tuple[str, dat
         pass
 
     return items
-
 
 def build_jieqi_based_festivals(year: int) -> List[Tuple[str, date, str]]:
     """
@@ -178,7 +166,6 @@ def build_jieqi_based_festivals(year: int) -> List[Tuple[str, date, str]]:
 
     return items
 
-
 def build_gregorian_festivals(year: int) -> List[Tuple[str, date, str]]:
     """
     公历纪念日（不含记者节）
@@ -187,11 +174,15 @@ def build_gregorian_festivals(year: int) -> List[Tuple[str, date, str]]:
     fixed = [
         ("元旦", date(year, 1, 1)),
         ("情人节", date(year, 2, 14)),
+        ("妇女节", date(year, 3, 8)),   # 新增
         ("植树节", date(year, 3, 12)),
         ("劳动节", date(year, 5, 1)),
         ("青年节", date(year, 5, 4)),
         ("儿童节", date(year, 6, 1)),
+        ("建党节", date(year, 7, 1)),   # 新增
+        ("建军节", date(year, 8, 1)),   # 新增
         ("教师节", date(year, 9, 10)),
+        ("国庆节", date(year, 10, 1)),  # 新增
     ]
     items = [(name, d, "Gregorian") for name, d in fixed]
 
@@ -205,7 +196,6 @@ def build_gregorian_festivals(year: int) -> List[Tuple[str, date, str]]:
 
     return items
 
-
 def collect_all_events(start_date: date, end_date: date) -> List[Tuple[str, date, str]]:
     """
     汇总所有节日并过滤在 [start_date, end_date] 区间内
@@ -216,7 +206,6 @@ def collect_all_events(start_date: date, end_date: date) -> List[Tuple[str, date
     # 覆盖腊月跨年：农历年份取较宽范围
     lunar_year_start = start_date.year - 1
     lunar_year_end = end_date.year + 1
-
     for ly in range(lunar_year_start, lunar_year_end + 1):
         for name, d, cat in build_lunar_festivals_for_lunar_year(ly):
             if start_date <= d <= end_date:
@@ -246,7 +235,6 @@ def collect_all_events(start_date: date, end_date: date) -> List[Tuple[str, date
     # 稳定排序：日期 + 名称（保证 UID 递增顺序稳定）
     events.sort(key=lambda x: (x[1], x[0]))
     return events
-
 
 def build_ics(events: List[Tuple[str, date, str]]) -> str:
     """
@@ -283,7 +271,6 @@ def build_ics(events: List[Tuple[str, date, str]]) -> str:
     lines.append("END:VCALENDAR")
     return "\r\n".join(lines)
 
-
 def main():
     # 时间范围：当前日期的前一年 1/1 至 下一年 12/31
     today = today_local_date()
@@ -299,7 +286,6 @@ def main():
     print(f"已生成：{OUTPUT_FILE}")
     print(f"覆盖范围：{start_date} ~ {end_date}")
     print(f"事件总数：{len(events)}")
-
 
 if __name__ == "__main__":
     main()
