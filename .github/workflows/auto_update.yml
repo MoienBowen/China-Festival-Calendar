@@ -17,6 +17,12 @@ jobs:
         with:
           persist-credentials: true
 
+      # 分支 main      
+      - name: Ensure on main branch        
+        run: |
+          git checkout -B main origin/main || git checkout main          
+          git pull --ff-only
+
       # 2️⃣ 安装 Python
       - name: Set up Python
         uses: actions/setup-python@v5
